@@ -23,7 +23,7 @@ Este proyecto se presenta como una Prueba de Concepto (PoC) en la que se define 
 
 El sistema de trazabilidad propuesto para esta ONG ficticia de ayuda para la DANA en Valencia consta de varios pasos detallados a continuación:
 
-1. **Donación de Producto y registor de productoss**: 
+1. **Donación de Producto y registor de productos**: 
     - El donante selecciona uno o varios tipos de productos de un listado definido (comida, productos de limpieza y herramientas).
     - Tras seleccionar la cantidad de productos que desea donar se simularia la entrega en un lugar de recogida, el personal verifica la entrega y genera un código QR que identifica la donación y el tipo de productos. Este QR permite al donante realizar un seguimiento de su donación a lo largo del proceso.
     - Una vez entregados y validados, los productos se agrupan en lotes de entre 3 y 10 unidades para facilitar su transporte y gestión.
@@ -60,4 +60,65 @@ Cada paso del proceso queda registrado en la blockchain, permitiendo que el dona
 
 ### Desarrollo e Implementación Técnica
 
-WIP
+1. **Registro de Productos**: Captura y almacenamiento de fotografías de los productos donados en cada lote.
+2. **Tokenización de Lotes**: Creación de tokens únicos para cada lote de donaciones.
+3. **Trazabilidad de Transporte**: Seguimiento en tiempo real del transporte de lotes desde el punto A al punto B.
+4. **Validación de Recepción**: Verificación y registro fotográfico de los lotes recibidos en el destino.
+5. **Gestión de Inventario**: Registro y consulta del almacenamiento de suministros.
+
+## Arquitectura Técnica
+
+### Blockchain
+- Red: Ethereum (pública)
+- Contratos Inteligentes: Solidity (Foundry)
+
+### Estándar de Token
+Para este proyecto podemos utilizar el estándar ERC-1155. Este estándar permite la creación de tokens tanto fungibles como no fungibles, lo que es ideal para representar lotes de productos que pueden tener características únicas pero también ser parte de una categoría más amplia.
+
+### Almacenamiento de Datos
+- IPFS (InterPlanetary File System) para almacenar fotografías y metadatos extensos.
+
+### Frontend
+- Aplicación web/móvil para interactuar con los contratos inteligentes y visualizar la trazabilidad.
+
+## Flujo del Proceso
+
+1. **Registro de Donación**:
+   - El donante entrega los productos.
+   - La ONG fotografía los productos.
+   - Se crea un lote y se tokeniza (ERC-1155).
+   - La información se almacena en IPFS y se registra en la blockchain.
+
+2. **Preparación para el Transporte**:
+   - Se agrupan los lotes en un vehículo.
+   - Se inicia el seguimiento del transporte.
+
+3. **Trazabilidad en Ruta**:
+   - El vehículo actualiza su posición periódicamente en la blockchain.
+
+4. **Recepción en Destino**:
+   - El receptor verifica y fotografía los lotes recibidos.
+   - Se actualiza el estado del token en la blockchain.
+
+5. **Almacenamiento**:
+   - Se registra la ubicación de almacenamiento de los suministros.
+
+6. **Consulta de Inventario**:
+   - Los usuarios autorizados pueden consultar el inventario a través de la aplicación.
+
+## Diagrama de Flujo
+
+```mermaid
+graph TD
+    A[Donante] -->|Fotografía y Registro| B(Creación de Lote)
+    B -->|Tokenización| C{ERC-1155 Token}
+    C -->|Almacenamiento| D[IPFS]
+    C -->|Registro| E[Ethereum Blockchain]
+    E -->|Agrupación| F[Vehículo de Transporte]
+    F -->|Actualización de Posición| E
+    F -->|Llegada| G[Receptor]
+    G -->|Verificación y Fotografía| H(Validación de Lote)
+    H -->|Actualización| E
+    H -->|Registro| I[Almacenamiento de Suministros]
+    I -->|Consulta| J[App de Inventario]
+```
