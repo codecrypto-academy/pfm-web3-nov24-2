@@ -122,3 +122,22 @@ graph TD
     H -->|Registro| I[Almacenamiento de Suministros]
     I -->|Consulta| J[App de Inventario]
 ```
+
+---
+
+### Pruebas y Validación
+
+instala foundry:
+```
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+arranca foundry en la carpeta back:
+```
+forge init back
+```
+instalar el token de openzeppelin:
+```
+forge install OpenZeppelin/openzeppelin-contracts
+
+```
