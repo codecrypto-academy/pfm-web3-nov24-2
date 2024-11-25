@@ -2,17 +2,18 @@
 pragma solidity ^0.8.13;
 
 interface IDataTypes {
-        // Events
+    // Events
     event BatchCreated(uint256 batchId, address currentHandler);
     event ProductAdded(uint256 batchId, uint256 productIndex, address donor);
     event DistributionZoneUpdated(uint256 batchId, DistributionZones destinationZone);
     event LocationUpdated(uint256 batchId, string location);
     event BatchClosed(uint256 batchId);
     event BatchAssignedToTransporter(uint256 batchId, address transporter);
+    event BatchTransferred(uint256 indexed batchId, address indexed newHandler, string newLocation);
 
     enum DistributionZones { Paiporta, Chiva, Massanassa, Catarroja }
     enum BatchStatus { OPEN, CLOSED, IN_TRANSIT }
-    
+    enum Role { ADMIN, TRANSPORTER, DONOR }
     
     struct Donation {
         address donor;
@@ -29,8 +30,6 @@ interface IDataTypes {
         address currentHandler;
         Donation[] donations;
     }
-
-    enum Role { ADMIN, TRANSPORTER, DONOR }
     
     struct Members {
         address account;

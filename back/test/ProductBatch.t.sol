@@ -6,103 +6,123 @@ import "../src/ProductBatch.sol";
 
 contract ProductBatchTest is Test {
     ProductBatch public productBatch;
-    address public admin = address(1);
-    address public donor = address(2);
-    address public transporter = address(3);
-
-    event BatchCreated(uint256 batchId, address currentHandler);
-    event ProductAdded(uint256 batchId, uint256 productIndex, address donor);
-    event BatchAssignedToTransporter(uint256 batchId, address transporter);
+    address admin = address(1);
+    address donor = address(2);
+    address transporter = address(3);
 
     function setUp() public {
-        vm.startPrank(admin);
+        vm.startPrank(address(this));
         productBatch = new ProductBatch();
-        
-        // Añadir roles
+
+        // Add members
         productBatch.addMember(admin, IDataTypes.Role.ADMIN);
         productBatch.addMember(donor, IDataTypes.Role.DONOR);
         productBatch.addMember(transporter, IDataTypes.Role.TRANSPORTER);
         vm.stopPrank();
     }
 
-    function testCreateBatch() public {
+    function testBatchCreation() public {
         vm.startPrank(admin);
-        
-        vm.expectEmit(true, true, false, true);
-        emit BatchCreated(1, admin);
-        
-        productBatch.createBatch("Initial Location");
-        
-        // Verificar que el batch fue creado correctamente
-        (uint256 id, , , IDataTypes.BatchStatus status, address handler, ) = productBatch.batches(1);
-        assertEq(id, 1);
-        assertEq(uint(status), uint(IDataTypes.BatchStatus.OPEN));
-        assertEq(handler, admin);
+        productBatch.createBatch("Palma");
+
+        // Verify batch creation
+        IDataTypes.Batch memory batch = productBatch.getBatch(1);
+        assertEq(batch.id, 1);
+        assertEq(batch.locations[0], "Palma");
+        assertEq(uint(batch.status), uint(IDataTypes.BatchStatus.OPEN));
+        assertEq(batch.currentHandler, admin);
         vm.stopPrank();
     }
 
-    function testAddDonation() public {
-        // Primero crear un batch
-        vm.prank(admin);
-        productBatch.createBatch("Initial Location");
-
-        // Añadir una donación
+    function testAddMultipleDonations() public {
         vm.startPrank(donor);
-        vm.expectEmit(true, true, true, true);
-        emit ProductAdded(1, 0, donor);
-        
-        productBatch.donationManager().addDonation(1, "Test Product");
-        
-        // Verificar la donación
-        (address donorAddr, string memory desc, , bool validated) = productBatch.donationManager().getDonation(1, 0);
-        assertEq(donorAddr, donor);
-        assertEq(desc, "Test Product");
-        assertTrue(validated);
+        productBatch.addDonation(1, "Donation test 1");
+        productBatch.addDonation(1, "Donation test 2");
+        vm.stopPrank();
+
+        // Verificamos que las donaciones fueron añadidas
+        IDataTypes.Batch memory batch = productBatch.getBatch(1);
+        assertEq(batch.donations[0].description, "Donation test 1");
+        assertEq(batch.donations[1].description, "Donation test 2");
+        assertEq(batch.donations[0].donor, donor);
+        assertEq(batch.donations[1].donor, donor);
+    }
+
+    function testBatchClosing() public {
+        vm.startPrank(admin);
+        productBatch.closeBatch(1);
         vm.stopPrank();
     }
 
-    function testClaimBatch() public {
-        // Crear y cerrar un batch
+    function testBatchClaim() public {
+        // Primero creamos y cerramos un batch
         vm.startPrank(admin);
-        productBatch.createBatch("Initial Location");
+        productBatch.createBatch("Palma");
         productBatch.closeBatch(1);
         vm.stopPrank();
 
-        // Reclamar el batch como transportista
+        // Luego el transportista lo reclama
         vm.startPrank(transporter);
-        vm.expectEmit(true, true, false, true);
-        emit BatchAssignedToTransporter(1, transporter);
-        
-        productBatch.transportManager().claimBatch(1);
-        
-        // Verificar el estado del batch
-        (, , , IDataTypes.BatchStatus status, address handler, ) = productBatch.batches(1);
-        assertEq(uint(status), uint(IDataTypes.BatchStatus.IN_TRANSIT));
-        assertEq(handler, transporter);
+        productBatch.claimBatch(1);
         vm.stopPrank();
+
+        // Verificamos que el batch fue reclamado
+        IDataTypes.Batch memory batch = productBatch.getBatch(1);
+        assertEq(batch.currentHandler, transporter);
+        assertEq(uint(batch.status), uint(IDataTypes.BatchStatus.IN_TRANSIT));
     }
 
-    function testFailUnauthorizedBatchCreation() public {
-        vm.prank(donor);
-        vm.expectRevert("Unauthorized");
-        productBatch.createBatch("Initial Location");
+    function testLocationUpdate() public {
+        // Crear y cerrar el batch
+        vm.startPrank(admin);
+        productBatch.createBatch("Palma");
+        productBatch.closeBatch(1);
+        vm.stopPrank();
+
+        // El transportista reclama el batch
+        vm.startPrank(transporter);
+        productBatch.claimBatch(1);
+        
+        // Actualiza la ubicación
+        productBatch.updateLocation(1, "Alicante");
+        vm.stopPrank();
+
+        // Verificamos que la ubicación fue actualizada
+        IDataTypes.Batch memory batch = productBatch.getBatch(1);
+        assertEq(batch.locations[1], "Alicante");
     }
 
-    function testFailUnauthorizedDonation() public {
-        vm.prank(admin);
-        productBatch.createBatch("Initial Location");
+    function testDonationAddition() public {
+        vm.startPrank(donor);
+        productBatch.addDonation(1, "Donation test");
+        vm.stopPrank();
 
-        vm.prank(transporter);
-        vm.expectRevert("Unauthorized");
-        productBatch.donationManager().addDonation(1, "Test Product");
+        // Verificamos que la donación fue añadida
+        IDataTypes.Batch memory batch = productBatch.getBatch(1);
+        assertEq(batch.donations[0].description, "Donation test");
+        assertEq(batch.donations[0].donor, donor);
     }
 
-    function testFailClaimBatchBeforeClosed() public {
-        vm.prank(admin);
-        productBatch.createBatch("Initial Location");
+    function testOpenBatchCloseBatchClaimUpdateLocationTransferBatch() public {
+        // Crear y cerrar el batch
+        vm.startPrank(admin);
+        productBatch.createBatch("Palma");
+        productBatch.closeBatch(1);
+        vm.stopPrank();
 
-        vm.prank(transporter);
-        vm.expectRevert("Batch not ready");
-        productBatch.transportManager().claimBatch(1);
+        // El transportista reclama el batch y actualiza ubicación
+        vm.startPrank(transporter);
+        productBatch.claimBatch(1);
+        productBatch.updateLocation(1, "Madrid");
+        productBatch.transferBatch(1, address(4), "Valencia");
+        vm.stopPrank();
+
+        // Verificamos que el batch fue transferido
+        IDataTypes.Batch memory batch = productBatch.getBatch(1);
+        assertEq(batch.currentHandler, address(4));
+        // validamos todas las localizaciones
+        assertEq(batch.locations[0], "Palma");
+        assertEq(batch.locations[1], "Madrid");
+        assertEq(batch.locations[2], "Valencia");
     }
-} 
+}

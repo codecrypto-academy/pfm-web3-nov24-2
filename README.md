@@ -139,3 +139,13 @@ instalar el token de openzeppelin:
 ```
 forge install OpenZeppelin/openzeppelin-contracts
 ```
+Compila el contrato y ejecuta las pruebas:
+```
+forge build
+forge test
+```
+
+Ejecuta anvil para lanzar un nodo local:
+```
+anvil
+```
