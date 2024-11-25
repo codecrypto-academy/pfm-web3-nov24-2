@@ -1,0 +1,41 @@
+# Ignore build artifacts
+out/
+cache/
+artifacts/
+
+# Ignore dependencies
+lib/
+
+# Ignore Forge config cache
+foundry.toml.lock
+broadcast/
+
+# Node.js dependencies (if using scripts or frontend integration)
+node_modules/
+
+# IDE and editor-specific files
+*.log
+*.swp
+*.swo
+.idea/
+.vscode/
+*.iml
+
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# System-generated files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Test coverage reports
+coverage/
+coverage.json
+lcov-report/
+lcov.info
+*.lcov
+*.lcov.info

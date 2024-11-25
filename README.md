@@ -122,3 +122,39 @@ graph TD
     H -->|Registro| I[Almacenamiento de Suministros]
     I -->|Consulta| J[App de Inventario]
 ```
+
+---
+
+### Pruebas y Validación
+
+instala foundryup. Sigue las instrucciones en https://book.getfoundry.sh/getting-started/installation.
+```
+curl -L https://foundry.paradigm.xyz | bash
+```
+arranca foundry en la carpeta back:
+```
+forge init back
+```
+instalar el token de openzeppelin:
+```
+forge install OpenZeppelin/openzeppelin-contracts
+```
+Compila el contrato y ejecuta las pruebas:
+```
+forge build
+forge test
+```
+
+Ejecuta anvil para lanzar un nodo local:
+```
+anvil
+```
+Crea una variable de entorno con tu clave privada obtenida de anvil:
+```
+export PRIVATE_KEY=<your-private-key>
+```
+
+Ejecuta el script para desplegar el contrato:
+```
+forge script script/ProductBatchScript.s.sol:ProductBatchScript --fork-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
+```
