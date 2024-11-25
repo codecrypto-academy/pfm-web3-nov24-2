@@ -1,8 +1,7 @@
 name: CI
 
 on:
-  push:
-  pull_request:
+  push:  
   workflow_dispatch:
 
 env:
@@ -10,36 +9,28 @@ env:
 
 jobs:
   check:
-    strategy:
-      fail-fast: true
-
     name: Foundry project
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: stable
 
       - name: Show Forge version
         run: |
           forge --version
 
-      - name: Run Forge fmt
+      - name: Run Forge fmt check
         run: |
-          forge fmt --check
-        id: fmt
+          forge fmt --check ./back
 
       - name: Run Forge build
         run: |
-          forge build --sizes
-        id: build
+          forge build --sizes --names ./back
 
       - name: Run Forge tests
         run: |
-          forge test -vvv
-        id: test
+          forge test -vvv ./back
