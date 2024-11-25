@@ -149,3 +149,12 @@ Ejecuta anvil para lanzar un nodo local:
 ```
 anvil
 ```
+Crea una variable de entorno con tu clave privada obtenida de anvil:
+```
+export PRIVATE_KEY=<your-private-key>
+```
+
+Ejecuta el script para desplegar el contrato:
+```
+forge script script/ProductBatchScript.s.sol:ProductBatchScript --fork-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
+```
