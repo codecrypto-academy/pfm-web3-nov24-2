@@ -36,10 +36,10 @@ jobs:
 
       - name: Run Forge build
         run: |
-          forge build --sizes
+          forge build ./back --sizes
         id: build
 
       - name: Run Forge tests
         run: |
-          forge test -vvv
+          forge test ./back -vvv
         id: test
