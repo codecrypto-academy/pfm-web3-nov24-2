@@ -1,14 +1,5 @@
 name: CI
 
-# on:
-#   push:
-#     branches:
-#       - main
-#   pull_request:
-#     branches:
-#       - main
-#   workflow_dispatch:
-
 on:
   push:
   pull_request:
@@ -35,16 +26,12 @@ jobs:
       with:
         version: nightly
 
-    - name: Show Forge version
-      working-directory: ./back
-      run: forge --version
-
-    - name: Run Forge build
+    - name: Compile smart contracts
       working-directory: ./back
       run: forge build
       id: build
 
-    - name: Run Forge tests
+    - name: Test smart contracts
       working-directory: ./back
       run: forge test
       id: test
