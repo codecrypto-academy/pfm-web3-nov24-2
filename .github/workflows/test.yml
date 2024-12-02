@@ -1,5 +1,14 @@
 name: CI
 
+# on:
+#   push:
+#     branches:
+#       - main
+#   pull_request:
+#     branches:
+#       - main
+#   workflow_dispatch:
+
 on:
   push:
   pull_request:
@@ -26,24 +35,21 @@ jobs:
       with:
         version: nightly
 
-    - name: Change to back directory
-      run: cd back
-
     - name: Show Forge version
-      run: |
-        forge --version
+      working-directory: ./back
+      run: forge --version
 
     - name: Run Forge fmt
-      run: |
-        forge fmt --check
+      working-directory: ./back
+      run: forge fmt --check
       id: fmt
 
     - name: Run Forge build
-      run: |
-        forge build
+      working-directory: ./back
+      run: forge build
       id: build
 
     - name: Run Forge tests
-      run: |
-        forge test
+      working-directory: ./back
+      run: forge test
       id: test
