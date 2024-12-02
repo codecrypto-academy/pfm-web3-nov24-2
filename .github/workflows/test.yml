@@ -5,6 +5,7 @@ on:
   pull_request:
   workflow_dispatch:
 
+
 env:
   FOUNDRY_PROFILE: ci
 
@@ -16,30 +17,33 @@ jobs:
     name: Foundry project
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
 
-      - name: Show Forge version
-        run: |
-          forge --version
+    - name: Change to back directory
+      run: cd back
 
-      - name: Run Forge fmt
-        run: |
-          forge fmt --check
-        id: fmt
+    - name: Show Forge version
+      run: |
+        forge --version
 
-      - name: Run Forge build
-        run: |
-          forge build ./back --sizes
-        id: build
+    - name: Run Forge fmt
+      run: |
+        forge fmt --check
+      id: fmt
 
-      - name: Run Forge tests
-        run: |
-          forge test ./back -vvv
-        id: test
+    - name: Run Forge build
+      run: |
+        forge build
+      id: build
+
+    - name: Run Forge tests
+      run: |
+        forge test
+      id: test
