@@ -10,11 +10,8 @@ env:
   FOUNDRY_PROFILE: ci
 
 jobs:
-  check:
-    strategy:
-      fail-fast: true
-
-    name: Foundry project
+  foundry:
+    name: ONG workflow traceability
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -26,12 +23,10 @@ jobs:
       with:
         version: nightly
 
-    - name: Compile smart contracts
+    - name: Compile
       working-directory: ./back
       run: forge build
-      id: build
 
-    - name: Test smart contracts
+    - name: Test
       working-directory: ./back
       run: forge test
-      id: test
