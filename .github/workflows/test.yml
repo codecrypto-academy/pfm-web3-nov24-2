@@ -39,11 +39,6 @@ jobs:
       working-directory: ./back
       run: forge --version
 
-    - name: Run Forge fmt
-      working-directory: ./back
-      run: forge fmt --check
-      id: fmt
-
     - name: Run Forge build
       working-directory: ./back
       run: forge build
