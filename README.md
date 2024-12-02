@@ -158,3 +158,18 @@ Ejecuta el script para desplegar el contrato:
 ```
 forge script script/ProductBatchScript.s.sol:ProductBatchScript --fork-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
 ```
+
+Instala las dependencias del front ubicados en el directorio front ejecutar el comando:
+```
+npm install --force
+```
+
+Si da problemas borrar el 'node_modules' limpiar la cache de npm:
+```
+rm -rf node_modules/ && npm cache clean --force
+```
+
+Seguidamente para levantar el proyecto ejecutar los comandos:
+```
+npm run dev
+```
