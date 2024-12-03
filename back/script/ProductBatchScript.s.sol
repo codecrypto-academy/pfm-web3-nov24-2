@@ -9,7 +9,7 @@ contract ProductBatchScript is Script {
         // uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");    
         vm.startBroadcast();
         ProductBatch productBatch = new ProductBatch();
-        productBatch.addMember(msg.sender, IDataTypes.Role.ADMIN);
+        productBatch.addMember(msg.sender, IDataTypes.Role.ADMIN, true);
         vm.stopBroadcast();
         return productBatch;
     }

@@ -25,8 +25,8 @@ contract ProductBatch is ERC1155, IDataTypes {
         _;
     }
 
-    function addMember(address account, Role role) external onlyRole(Role.ADMIN) {
-        members[account] = Members(account, role, true);
+    function addMember(address account, Role role, bool isActive) external onlyRole(Role.ADMIN) {
+        members[account] = Members(account, role, isActive);
         listOfMembers[currentMemberId] = members[account];
         currentMemberId++;
     }

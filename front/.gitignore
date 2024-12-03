@@ -82,6 +82,6 @@ coverage/
 *.lcov
 
 # Optional: lock files if using npm or yarn workspaces
-# yarn.lock
-# package-lock.json
+yarn.lock
+package-lock.json
 
