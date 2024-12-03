@@ -1,5 +1,5 @@
 import Tabs from '../components/Tabs';
-
+import GetListOfMembersComponent from '../components/GetListOfMembersComponent';
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-100">
@@ -33,6 +33,8 @@ export default function Home() {
         <section>
           <Tabs />
         </section>
+        
+        <GetListOfMembersComponent />
       </main>
 
       <footer className="bg-gray-800 text-white py-4">

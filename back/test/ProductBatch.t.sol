@@ -17,9 +17,9 @@ contract ProductBatchTest is Test {
         productBatch = new ProductBatch();
 
         // Add members
-        productBatch.addMember(admin, IDataTypes.Role.ADMIN);
-        productBatch.addMember(donor, IDataTypes.Role.DONOR);
-        productBatch.addMember(transporter, IDataTypes.Role.TRANSPORTER);
+        productBatch.addMember(admin, IDataTypes.Role.ADMIN, true);
+        productBatch.addMember(donor, IDataTypes.Role.DONOR, true);
+        productBatch.addMember(transporter, IDataTypes.Role.TRANSPORTER, true);
         vm.stopPrank();
     }
 
@@ -204,8 +204,8 @@ contract ProductBatchTest is Test {
 
         // Add 2 more members
         vm.startPrank(admin);
-        productBatch.addMember(address(5), IDataTypes.Role.DONOR);
-        productBatch.addMember(address(6), IDataTypes.Role.DONOR);
+        productBatch.addMember(address(5), IDataTypes.Role.DONOR, true);
+        productBatch.addMember(address(6), IDataTypes.Role.DONOR, false);
         vm.stopPrank();
 
         vm.startPrank(admin);
