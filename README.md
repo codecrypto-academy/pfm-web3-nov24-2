@@ -159,17 +159,30 @@ Ejecuta el script para desplegar el contrato:
 forge script script/ProductBatchScript.s.sol:ProductBatchScript --fork-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
 ```
 
+
+Copia el contrato ABI en el directorio front:
+```
+cp back/out/ProductBatch.json front/src/contracts/ProductBatch.json
+```
+
 Instala las dependencias del front ubicados en el directorio front ejecutar el comando:
 ```
 npm install --force
 ```
 
-Si da problemas borrar el 'node_modules' limpiar la cache de npm:
+Si da problemas borrar el 'node_modules' limpiar la cache de npm y volver a lanzar el comando:
 ```
 rm -rf node_modules/ && npm cache clean --force
+```
+
+Crear el archivo .env en el directorio front con el siguiente contenido:
+```
+NEXT_PUBLIC_CONTRACT_ADDRESS=<address-of-your-deployed-contract>
 ```
 
 Seguidamente para levantar el proyecto ejecutar los comandos:
 ```
 npm run dev
 ```
+
+Para ejecutar las pruebas con el contrato desplegado en anvil no es necesario modificar el archivo .env. cada vez que se pare la red y se vuelva a lanzar, el contrato mantiene el mismo address.
