@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useEthereum } from '../hooks/connectMetamask';
 
 type Location = 'Paiporta' | 'Chiva' | 'Massanassa' | 'Catarroja';
 
@@ -13,44 +14,86 @@ type Batch = {
   destinationZone?: Location;
 };
 
-// Mock data
-const initialBatches: Batch[] = [
-  {
-    id: '1',
-    name: 'Lote Alimentos #1',
-    status: 'CLOSED',
-    currentHandler: '0x1234...5678',
-    donations: ['Comida', 'Productos de limpieza'],
-  },
-  {
-    id: '2',
-    name: 'Lote Herramientas #2',
-    status: 'CLOSED',
-    currentHandler: '0x8765...4321',
-    donations: ['Herramientas'],
-  },
-];
+const statusMap: { [key: number]: string } = {
+  0: 'OPEN',
+  1: 'CLOSED',
+  2: 'IN_TRANSIT',
+  3: 'DELIVERY'
+};
 
 const Transport: React.FC = () => {
-  const [batches, setBatches] = useState<Batch[]>(initialBatches);
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [showTransportModal, setShowTransportModal] = useState(false);
   const [selectedBatch, setSelectedBatch] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<Location>('Paiporta');
+  const { contract } = useEthereum();
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'OPEN':
+        return 'bg-green-100 text-green-800';
+      case 'CLOSED':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'IN_TRANSIT':
+        return 'bg-blue-100 text-blue-800';
+      case 'DELIVERY':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const fetchBatches = async () => {
+    if (contract) {
+      try {
+        const result = await contract.getAllBatchesWithStatusClosedReadyForTransporter();
+        console.log('Batches fetched:', result);
+
+        if (result.length === 0) {
+          setBatches([]);
+          return;
+        }
+        
+        if (Array.isArray(result) && result.every(batch => 
+          batch && 
+          typeof batch.id !== 'undefined' && 
+          typeof batch.status !== 'undefined' &&
+          typeof batch.currentHandler !== 'undefined'
+        )) {
+          setBatches(result);
+        } else {
+          console.warn('El resultado no tiene el formato esperado:', result);
+          setBatches([]);
+        }
+      } catch (error) {
+        console.error('Error fetching batches:', error);
+        setBatches([]);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchBatches();
+  }, [contract]);
 
   const handleAssignForTransport = (batchId: string) => {
     setSelectedBatch(batchId);
     setShowTransportModal(true);
   };
 
-  const handleConfirmTransport = () => {
-    if (selectedBatch && selectedLocation) {
-      setBatches(batches.map(batch => 
-        batch.id === selectedBatch
-          ? { ...batch, status: 'IN_TRANSIT', destinationZone: selectedLocation }
-          : batch
-      ));
-      setShowTransportModal(false);
-      setSelectedBatch(null);
+  const handleConfirmTransport = async () => {
+    if (contract && selectedBatch) {
+      try {
+        const tx = await contract.claimBatchForTransporter(selectedBatch);
+        await tx.wait();
+        console.log('Batch claimed for transport successfully');
+        await fetchBatches();
+      } catch (error) {
+        console.error('Error claiming batch for transport:', error);
+      } finally {
+        setShowTransportModal(false);
+        setSelectedBatch(null);
+      }
     }
   };
 
@@ -60,52 +103,44 @@ const Transport: React.FC = () => {
       
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-          <thead className="bg-gray-200">
+          <thead className="bg-[#B3E5FC]">
             <tr>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
-                ID Lote
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
-                Nombre
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
-                Contenido
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
-                Estado
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
-                Responsable Actual
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
-                Acciones
-              </th>
+              <th className="px-6 py-3 text-left text-base font-semibold text-gray-800 uppercase">ID Lote</th>
+              <th className="px-6 py-3 text-left text-base font-semibold text-gray-800 uppercase">Estado</th>
+              <th className="px-6 py-3 text-left text-base font-semibold text-gray-800 uppercase">Handler Actual</th>
+              <th className="px-6 py-3 text-left text-base font-semibold text-gray-800 uppercase">Contenido</th>
+              <th className="px-6 py-3 text-left text-base font-semibold text-gray-800 uppercase">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {batches.filter(batch => batch.status === 'CLOSED').map((batch) => (
-              <tr key={batch.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                  {batch.id}
+            {batches.map((batch) => (
+              <tr key={batch.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 text-base text-gray-900 font-medium">
+                  #{batch.id}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                  {batch.name}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                  {batch.donations.join(', ')}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                    {batch.status}
+                <td className="px-6 py-4">
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(statusMap[Number(batch.status)])}`}>
+                    {statusMap[Number(batch.status)] || 'Desconocido'}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-700">
-                  {batch.currentHandler}
+                <td className="px-6 py-4 text-base text-gray-900">
+                  {`${batch.currentHandler.slice(0, 6)}...${batch.currentHandler.slice(-4)}`}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4">
+                  <div className="max-w-xl overflow-x-auto">
+                    {Array.isArray(batch.donations) ? (
+                      <span className="text-base text-gray-900">
+                        {batch.donations.length} donaciones
+                      </span>
+                    ) : (
+                      <span className="text-base text-gray-500">Sin donaciones</span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4">
                   <button
                     onClick={() => handleAssignForTransport(batch.id)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-md transition duration-200 ease-in-out transform hover:-translate-y-1"
+                    className="bg-[#B3E5FC] hover:bg-blue-300 text-gray-800 px-6 py-3 text-base font-medium rounded-md shadow-md transition duration-200"
                   >
                     Asignar para Transporte
                   </button>
@@ -123,12 +158,12 @@ const Transport: React.FC = () => {
             <select
               value={selectedLocation}
               onChange={(e) => setSelectedLocation(e.target.value as Location)}
-              className="border border-gray-300 rounded-md px-4 py-2 mb-6 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-md px-4 py-2 mb-6 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
             >
-              <option value="Paiporta">Paiporta</option>
-              <option value="Chiva">Chiva</option>
-              <option value="Massanassa">Massanassa</option>
-              <option value="Catarroja">Catarroja</option>
+              <option value="Paiporta" className="text-gray-900">Paiporta</option>
+              <option value="Chiva" className="text-gray-900">Chiva</option>
+              <option value="Massanassa" className="text-gray-900">Massanassa</option>
+              <option value="Catarroja" className="text-gray-900">Catarroja</option>
             </select>
             <div className="flex justify-end space-x-4">
               <button

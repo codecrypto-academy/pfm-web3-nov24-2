@@ -8,13 +8,18 @@ contract ProductBatch is ERC1155, IDataTypes {
     uint256 private constant MAX_PRODUCTS_PER_BATCH = 5;
     uint256 private currentBatchId = 1;
     uint256 private currentMemberId = 0;
+    uint256 private currentDonationId = 1;
     
     mapping(address => Members) private members;
     mapping(uint256 => Members) private listOfMembers;
     mapping(uint256 => Batch) private batches;
+    mapping(uint256 => Donation) private donations;
+    
+    uint256[] private allDonationIds;
+    mapping(uint256 => bool) private isDonationAssigned;
 
     constructor() ERC1155("https://token-cdn-domain/{id}.json") {
-        members[msg.sender] = Members(msg.sender, Role.ADMIN, true);
+        members[msg.sender] = Members("Administrator", msg.sender, Role.ADMIN, true);
         listOfMembers[currentMemberId] = members[msg.sender];
         currentMemberId++;
     }
@@ -25,8 +30,17 @@ contract ProductBatch is ERC1155, IDataTypes {
         _;
     }
 
-    function addMember(address account, Role role, bool isActive) external onlyRole(Role.ADMIN) {
-        members[account] = Members(account, role, isActive);
+    modifier onlyAdminOrDonor() {
+        require(
+            (members[msg.sender].role == Role.ADMIN || members[msg.sender].role == Role.DONOR) && 
+            members[msg.sender].isActive, 
+            "Only admin or donor can access"
+        );
+        _;
+    }
+
+    function addMember(string memory name, address account, Role role) external onlyRole(Role.ADMIN) {
+        members[account] = Members(name, account, role, true);
         listOfMembers[currentMemberId] = members[account];
         currentMemberId++;
     }
@@ -63,17 +77,46 @@ contract ProductBatch is ERC1155, IDataTypes {
         emit BatchClosed(batchId);
     }
 
-    function addDonation(uint256 batchId, string memory productDescription) external onlyRole(Role.DONOR) {
+    function createDonation(
+        string memory productDescription, 
+        DonationType donation, 
+        string memory image
+    ) external onlyRole(Role.DONOR) returns (uint256) {
+        uint256 donationId = currentDonationId;
+
+        donations[donationId] = Donation({
+            donor: msg.sender,
+            description: productDescription,
+            timestamp: block.timestamp,
+            donationType: donation,
+            imageUrl: image
+        });
+
+        allDonationIds.push(donationId);
+        currentDonationId++;
+        
+        emit DonationCreated(donationId, msg.sender);
+        return donationId;
+    }
+
+    function getAllDonations() external view onlyAdminOrDonor returns (Donation[] memory) {
+        Donation[] memory allDonations = new Donation[](currentDonationId - 1);
+        for (uint256 i = 1; i < currentDonationId; i++) {
+            allDonations[i - 1] = donations[i];
+        }
+        return allDonations;
+    }
+
+    function addDonationToBatch(uint256 batchId, uint256 donationId) external onlyRole(Role.ADMIN) {
+        require(batches[batchId].status == BatchStatus.OPEN, "Batch not open");
+        require(!isDonationAssigned[donationId], "Donation already assigned");
         require(batches[batchId].donations.length < MAX_PRODUCTS_PER_BATCH, "Batch is full");
         
-        batches[batchId].donations.push(
-            Donation({
-                donor: msg.sender,
-                description: productDescription,
-                timestamp: block.timestamp
-            })
-        );
-        emit ProductAdded(batchId, batches[batchId].donations.length - 1, msg.sender);
+        Donation storage donation = donations[donationId];
+        require(donation.donor != address(0), "Donation does not exist");
+        
+        batches[batchId].donations.push(donation);
+        isDonationAssigned[donationId] = true;
     }
 
     function claimBatchForTransporter(uint256 batchId) external onlyRole(Role.TRANSPORTER) {
@@ -152,7 +195,7 @@ contract ProductBatch is ERC1155, IDataTypes {
     }
 
     function getAllBatchesWithStatusClosedReadyForTransporter() external view returns (Batch[] memory) {
-        // First, count how many batches have CLOSED status
+        // Primero contamos cuántos batches tienen estado CLOSED
         uint256 count = 0;
         for (uint256 i = 1; i < currentBatchId; i++) {
             if (batches[i].status == BatchStatus.CLOSED) {
@@ -160,7 +203,7 @@ contract ProductBatch is ERC1155, IDataTypes {
             }
         }
 
-        // Create array with exact size needed
+        // Creamos un array del tamaño exacto necesario
         Batch[] memory closedBatches = new Batch[](count);
         uint256 currentIndex = 0;
         for (uint256 i = 1; i < currentBatchId; i++) {
@@ -172,7 +215,7 @@ contract ProductBatch is ERC1155, IDataTypes {
         return closedBatches;
     }
 
-    function getAllBatchesWithStatusInTransitReadyForDelivery () external view returns (Batch[] memory) {
+    function getAllBatchesWithStatusInTransitReadyForDeliveryIn() external view returns (Batch[] memory) {
         // First, count how many batches have IN_TRANSIT status
         uint256 count = 0;
         for (uint256 i = 1; i < currentBatchId; i++) {
@@ -181,7 +224,7 @@ contract ProductBatch is ERC1155, IDataTypes {
             }
         }
 
-        // Create array with exact size needed
+        // Create an array with the exact required size
         Batch[] memory inTransitBatches = new Batch[](count);
         uint256 currentIndex = 0;
         for (uint256 i = 1; i < currentBatchId; i++) {
@@ -190,6 +233,50 @@ contract ProductBatch is ERC1155, IDataTypes {
                 currentIndex++;
             }
         }
-        return inTransitBatches;
+        return inTransitBatches;   
+    }
+
+    function getAllBatchesWithStatusDeliveryReadyForDeliveryOut() external view returns (Batch[] memory) {
+        // First, count how many batches have DELIVERY status
+        uint256 count = 0;
+        for (uint256 i = 1; i < currentBatchId; i++) {
+            if (batches[i].status == BatchStatus.DELIVERY) {
+                count++;
+            }
+        }
+
+        // Create an array with the exact required size
+        Batch[] memory inDeliveryBatches = new Batch[](count);
+        uint256 currentIndex = 0;
+        for (uint256 i = 1; i < currentBatchId; i++) {
+            if (batches[i].status == BatchStatus.DELIVERY) {
+                inDeliveryBatches[currentIndex] = batches[i];
+                currentIndex++;
+            }
+        }
+        return inDeliveryBatches;   
+    }
+
+    function getAllBatchesInTransitAndDelivery() external view returns (Batch[] memory) {
+        // Count batches in both states
+        uint256 count = 0;
+        for (uint256 i = 1; i < currentBatchId; i++) {
+            if (batches[i].status == BatchStatus.IN_TRANSIT || 
+                batches[i].status == BatchStatus.DELIVERY) {
+                count++;
+            }
+        }
+
+        // Create array and populate it
+        Batch[] memory filteredBatches = new Batch[](count);
+        uint256 currentIndex = 0;
+        for (uint256 i = 1; i < currentBatchId; i++) {
+            if (batches[i].status == BatchStatus.IN_TRANSIT || 
+                batches[i].status == BatchStatus.DELIVERY) {
+                filteredBatches[currentIndex] = batches[i];
+                currentIndex++;
+            }
+        }
+        return filteredBatches;   
     }
 }

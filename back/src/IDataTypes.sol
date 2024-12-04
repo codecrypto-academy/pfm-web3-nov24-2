@@ -10,15 +10,19 @@ interface IDataTypes {
     event BatchClosed(uint256 batchId);
     event BatchClaimed(uint256 batchId, BatchStatus status);
     event BatchTransferred(uint256 indexed batchId, address indexed newHandler, string latitude, string longitude);
+    event DonationCreated(uint256 donationId, address donor);
 
     enum DistributionZones { Paiporta, Chiva, Massanassa, Catarroja }
     enum BatchStatus { OPEN, CLOSED, IN_TRANSIT, DELIVERY }
     enum Role { ADMIN, TRANSPORTER, DONOR }
+    enum DonationType { Food, CleaningSupplies, Tools }
     
     struct Donation {
         address donor;
         string description;
         uint256 timestamp;
+        DonationType donationType;
+        string imageUrl;
     }
 
     struct Location {
@@ -36,6 +40,7 @@ interface IDataTypes {
     }
     
     struct Members {
+        string name;
         address account;
         Role role;
         bool isActive;
