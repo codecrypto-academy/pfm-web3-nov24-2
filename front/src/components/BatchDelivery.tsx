@@ -24,9 +24,10 @@ const BatchDelivery: React.FC = () => {
       try {
         const result = await contract.getAllBatchesInTransitAndDelivery();
         console.log('Batches fetched:', result);
-        setBatches(result);
+        setBatches(Array.isArray(result) ? result : []);
       } catch (error) {
         console.error('Error fetching batches:', error);
+        setBatches([]);
       }
     }
   };
@@ -106,66 +107,76 @@ const BatchDelivery: React.FC = () => {
     <div className="container mx-auto p-6 bg-white shadow-lg rounded-lg">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Entrega de Lotes</h2>
       
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-          <thead className="bg-[#B3E5FC]">
-            <tr>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">
-                ID Lote
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">
-                Estado
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">
-                Handler Actual
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">
-                Acciones
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {batches.map((batch) => (
-              <tr key={batch.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                  #{batch.id.toString()}
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(statusMap[Number(batch.status)])}`}>
-                    {statusMap[Number(batch.status)] || 'Desconocido'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-700">
-                  {`${batch.currentHandler.slice(0, 6)}...${batch.currentHandler.slice(-4)}`}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleVerifyBatch(batch.id)}
-                      className="bg-[#B3E5FC] hover:bg-blue-300 text-gray-800 px-4 py-2 rounded-md shadow-md"
-                    >
-                      Verificar Lote
-                    </button>
-                    <button
-                      onClick={() => handleShowDonations(batch.id)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md shadow-md"
-                    >
-                      Validar Lote
-                    </button>
-                  </div>
-                </td>
+      {batches.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500 text-lg">No hay lotes disponibles en este momento</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+            <thead className="bg-[#B3E5FC]">
+              <tr>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">
+                  ID Lote
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">
+                  Estado
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">
+                  Handler Actual
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-800 uppercase tracking-wider">
+                  Acciones
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {batches.map((batch) => (
+                <tr key={batch.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                    #{batch.id.toString()}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(statusMap[Number(batch.status)])}`}>
+                      {statusMap[Number(batch.status)] || 'Desconocido'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap font-mono text-sm text-gray-700">
+                    {`${batch.currentHandler.slice(0, 6)}...${batch.currentHandler.slice(-4)}`}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleVerifyBatch(batch.id)}
+                        className="bg-[#B3E5FC] hover:bg-blue-300 text-gray-800 px-4 py-2 rounded-md shadow-md"
+                      >
+                        Verificar Lote
+                      </button>
+                      <button
+                        onClick={() => handleShowDonations(batch.id)}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md shadow-md"
+                      >
+                        Validar Lote
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Donations Modal */}
-      {showDonationsModal && (
+      {showDonationsModal && selectedBatchDonations && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-8 rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-800">Donaciones del Lote</h3>
+              <h3 className="text-xl font-bold text-gray-800">
+                {selectedBatchDonations.length === 0 
+                  ? "No hay donaciones en este lote" 
+                  : "Donaciones del Lote"}
+              </h3>
               <button
                 onClick={() => setShowDonationsModal(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -176,40 +187,46 @@ const BatchDelivery: React.FC = () => {
               </button>
             </div>
             
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-[#B3E5FC]">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-800">Donante</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-800">Descripción</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-800">Tipo</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-800">Imagen</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {selectedBatchDonations.map((donation, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {`${donation.donor.slice(0, 6)}...${donation.donor.slice(-4)}`}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
-                        {donation.description}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {getDonationType(donation.donationType)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <img 
-                          src={donation.imageUrl} 
-                          alt="Donation" 
-                          className="h-20 w-20 object-cover rounded-lg hover:scale-150 transition-transform duration-200"
-                        />
-                      </td>
+            {selectedBatchDonations.length === 0 ? (
+              <p className="text-center text-gray-500 py-4">
+                Este lote no contiene donaciones
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-[#B3E5FC]">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-800">Donante</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-800">Descripción</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-800">Tipo</th>
+                      <th className="px-6 py-3 text-left text-sm font-medium text-gray-800">Imagen</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {selectedBatchDonations.map((donation, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {`${donation.donor.slice(0, 6)}...${donation.donor.slice(-4)}`}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700">
+                          {donation.description}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {getDonationType(donation.donationType)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <img 
+                            src={donation.imageUrl} 
+                            alt="Donation" 
+                            className="h-20 w-20 object-cover rounded-lg hover:scale-150 transition-transform duration-200"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

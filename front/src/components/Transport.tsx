@@ -48,9 +48,26 @@ const Transport: React.FC = () => {
       try {
         const result = await contract.getAllBatchesWithStatusClosedReadyForTransporter();
         console.log('Batches fetched:', result);
-        setBatches(result);
+
+        if (result.length === 0) {
+          setBatches([]);
+          return;
+        }
+        
+        if (Array.isArray(result) && result.every(batch => 
+          batch && 
+          typeof batch.id !== 'undefined' && 
+          typeof batch.status !== 'undefined' &&
+          typeof batch.currentHandler !== 'undefined'
+        )) {
+          setBatches(result);
+        } else {
+          console.warn('El resultado no tiene el formato esperado:', result);
+          setBatches([]);
+        }
       } catch (error) {
         console.error('Error fetching batches:', error);
+        setBatches([]);
       }
     }
   };
