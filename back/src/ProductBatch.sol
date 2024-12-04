@@ -30,6 +30,15 @@ contract ProductBatch is ERC1155, IDataTypes {
         _;
     }
 
+    modifier onlyAdminOrDonor() {
+        require(
+            (members[msg.sender].role == Role.ADMIN || members[msg.sender].role == Role.DONOR) && 
+            members[msg.sender].isActive, 
+            "Only admin or donor can access"
+        );
+        _;
+    }
+
     function addMember(string memory name, address account, Role role) external onlyRole(Role.ADMIN) {
         members[account] = Members(name, account, role, true);
         listOfMembers[currentMemberId] = members[account];
@@ -88,6 +97,14 @@ contract ProductBatch is ERC1155, IDataTypes {
         
         emit DonationCreated(donationId, msg.sender);
         return donationId;
+    }
+
+    function getAllDonations() external view onlyAdminOrDonor returns (Donation[] memory) {
+        Donation[] memory allDonations = new Donation[](currentDonationId - 1);
+        for (uint256 i = 1; i < currentDonationId; i++) {
+            allDonations[i - 1] = donations[i];
+        }
+        return allDonations;
     }
 
     function addDonationToBatch(uint256 batchId, uint256 donationId) external onlyRole(Role.ADMIN) {
@@ -217,5 +234,49 @@ contract ProductBatch is ERC1155, IDataTypes {
             }
         }
         return inTransitBatches;   
+    }
+
+    function getAllBatchesWithStatusDeliveryReadyForDeliveryOut() external view returns (Batch[] memory) {
+        // First, count how many batches have DELIVERY status
+        uint256 count = 0;
+        for (uint256 i = 1; i < currentBatchId; i++) {
+            if (batches[i].status == BatchStatus.DELIVERY) {
+                count++;
+            }
+        }
+
+        // Create an array with the exact required size
+        Batch[] memory inDeliveryBatches = new Batch[](count);
+        uint256 currentIndex = 0;
+        for (uint256 i = 1; i < currentBatchId; i++) {
+            if (batches[i].status == BatchStatus.DELIVERY) {
+                inDeliveryBatches[currentIndex] = batches[i];
+                currentIndex++;
+            }
+        }
+        return inDeliveryBatches;   
+    }
+
+    function getAllBatchesInTransitAndDelivery() external view returns (Batch[] memory) {
+        // Count batches in both states
+        uint256 count = 0;
+        for (uint256 i = 1; i < currentBatchId; i++) {
+            if (batches[i].status == BatchStatus.IN_TRANSIT || 
+                batches[i].status == BatchStatus.DELIVERY) {
+                count++;
+            }
+        }
+
+        // Create array and populate it
+        Batch[] memory filteredBatches = new Batch[](count);
+        uint256 currentIndex = 0;
+        for (uint256 i = 1; i < currentBatchId; i++) {
+            if (batches[i].status == BatchStatus.IN_TRANSIT || 
+                batches[i].status == BatchStatus.DELIVERY) {
+                filteredBatches[currentIndex] = batches[i];
+                currentIndex++;
+            }
+        }
+        return filteredBatches;   
     }
 }

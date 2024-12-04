@@ -1,16 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useEthereum } from '../hooks/conectMetamask';
+import { useEthereum } from '../hooks/connectMetamask';
 
 type MemberData = [
-  string, // Address
-  number, // Role
-  boolean // Is active
+  string,  // name
+  string,  // address
+  number,  // role
+  boolean  // isActive
 ];
 
 const Members: React.FC = () => {
   const [ newMember, setNewMember ] = useState({
+    name: "",     // Nuevo campo
     address: "",
     role: "",
     active: false
@@ -72,33 +74,33 @@ const Members: React.FC = () => {
   };
 
   const handleSave = async () => {
-    console.info(`Address: ${newMember.address}, Role: ${newMember.role}, Active: ${newMember.active}`);
+    console.info(`Name: ${newMember.name}, Address: ${newMember.address}, Role: ${newMember.role}, Active: ${newMember.active}`);
     if (contract) {
       try {
-        await contract.addMember(newMember.address, newMember.role, newMember.active);
+        await contract.addMember(newMember.name, newMember.address, Number(newMember.role));
       } catch (error) {
         console.error('Error calling contract method:', error);
       } finally {
-        setNewMember({ address: "", role: "2", active: false });
+        setNewMember({ name: "", address: "", role: "2", active: false });
         setShowSaveButton(false);
       }
     }
   };
 
-  const handleRoleChange = async (memberAddress: string, role: number, isActive: boolean) => {
+  const handleRoleChange = async (name: string, memberAddress: string, role: number, isActive: boolean) => {
     if (contract) {
       try {
-        await contract.addMember(memberAddress, role, isActive);
+        await contract.addMember(name, memberAddress, role);
       } catch (error) {
         console.error('Error calling contract method:', error);
       }
     }
   };
 
-  const handleToggleActive = async (memberAddress: string, role: number, isActive: boolean) => {
+  const handleToggleActive = async (name: string, memberAddress: string, role: number, isActive: boolean) => {
     if (contract) {
       try {
-        await contract.addMember(memberAddress, role, isActive);
+        await contract.addMember(name, memberAddress, role, isActive);
       } catch (error) {
         console.error('Error calling contract method:', error);
       }
@@ -115,18 +117,22 @@ const Members: React.FC = () => {
       <div className="p-4 border-t border-gray-200">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Añadir Nuevo Miembro</h3>
         <div className="grid grid-cols-5 gap-4">
-          <select
+          <input
+            type="text"
+            name="name"
+            placeholder="Nombre del miembro"
+            value={newMember.name}
+            onChange={handleInputChange}
+            className="border border-gray-300 rounded-md px-3 py-2 w-full text-gray-700"
+          />
+          <input
+            type="text"
             name="address"
+            placeholder="Dirección (0x...)"
             value={newMember.address}
             onChange={handleInputChange}
-            className="border border-gray-300 rounded-md px-3 py-2 w-full whitespace-nowrap text-gray-700"
-          >
-            {accounts.map((account: string, index: number) => (
-              <option key={index} value={account}>
-                {account}
-              </option>
-            ))}
-          </select>
+            className="border border-gray-300 rounded-md px-3 py-2 w-full text-gray-700"
+          />
           <select
             name="role"
             value={newMember.role}
@@ -176,6 +182,9 @@ const Members: React.FC = () => {
             <thead className="bg-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
+                  Nombre
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
                   Address
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
@@ -187,15 +196,18 @@ const Members: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              { members.map((member: MemberData, index: number) => (
-                <tr key={index} className={!member[2] ? 'bg-gray-100' : ''}>
+              {members.map((member: MemberData, index: number) => (
+                <tr key={index} className={!member[3] ? 'bg-gray-100' : ''}>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-700">
                     {member[0]}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                    {member[1]}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select
-                      value={member[1]}
-                      onChange={(e: any) => handleRoleChange(member[0], e.target.value as number, member[2])}
+                      value={member[2]}
+                      onChange={(e) => handleRoleChange(member[0], member[1], Number(e.target.value), member[3])}
                       className="border border-gray-300 rounded-md px-2 py-1 text-gray-700"
                     >
                       <option value="0">Admin</option>
@@ -205,14 +217,14 @@ const Members: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
-                      onClick={() => handleToggleActive(member[0], member[1], !member[2])}
+                      onClick={() => handleToggleActive(member[0], member[1], member[2], !member[3])}
                       className={`px-4 py-2 rounded-md shadow-md ${
-                        member[2] 
+                        member[3] 
                           ? 'bg-red-500 hover:bg-red-600 text-white'
                           : 'bg-green-500 hover:bg-green-600 text-white'
                       }`}
                     >
-                      {member[2] ? 'Desactivar' : 'Activar'}
+                      {member[3] ? 'Desactivar' : 'Activar'}
                     </button>
                   </td>
                 </tr>

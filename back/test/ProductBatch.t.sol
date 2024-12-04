@@ -513,4 +513,155 @@ contract ProductBatchTest is Test {
         assertEq(donation.imageUrl, "image_url");
         vm.stopPrank();
     }
+
+    function testGetAllBatchesWithStatusDeliveryReadyForDeliveryOut() public {
+        // Create batch and move it to DELIVERY status
+        vm.startPrank(admin);
+        productBatch.createBatch(latitude, longitude);
+        productBatch.closeBatch(1);
+        vm.stopPrank();
+
+        vm.startPrank(transporter);
+        productBatch.claimBatchForTransporter(1);
+        vm.stopPrank();
+
+        vm.startPrank(admin);
+        productBatch.claimBatchForDelivery(1);
+        IDataTypes.Batch[] memory batches = productBatch.getAllBatchesWithStatusDeliveryReadyForDeliveryOut();
+        vm.stopPrank();
+
+        assertEq(batches.length, 1);
+    }
+
+    function testGetAllDonationsAsAdmin() public {
+        // Create donations
+        vm.startPrank(donor);
+        productBatch.createDonation(
+            "Donation 1",
+            IDataTypes.DonationType.Food,
+            "image_url_1"
+        );
+        productBatch.createDonation(
+            "Donation 2",
+            IDataTypes.DonationType.CleaningSupplies,
+            "image_url_2"
+        );
+        vm.stopPrank();
+
+        // Get all donations as admin
+        vm.startPrank(admin);
+        IDataTypes.Donation[] memory donations = productBatch.getAllDonations();
+        vm.stopPrank();
+
+        assertEq(donations.length, 2);
+    }
+
+    function testGetAllDonationsAsDonor() public {
+        // Create donations
+        vm.startPrank(donor);
+        productBatch.createDonation(
+            "Donation 1",
+            IDataTypes.DonationType.Food,
+            "image_url_1"
+        );
+        IDataTypes.Donation[] memory donations = productBatch.getAllDonations();
+        assertEq(donations.length, 1);
+        vm.stopPrank();
+    }
+
+    function testGetAllDonationsUnauthorized() public {
+        vm.startPrank(transporter);
+        vm.expectRevert("Only admin or donor can access");
+        productBatch.getAllDonations();
+        vm.stopPrank();
+    }
+
+    function testUpdateLocationNotInTransit() public {
+        // Create batch
+        vm.startPrank(admin);
+        productBatch.createBatch(latitude, longitude);
+        vm.stopPrank();
+
+        vm.startPrank(transporter);
+        vm.expectRevert("Not handler");
+        productBatch.updateLocation(1, "40.416775", "-3.703790");
+        vm.stopPrank();
+    }
+
+    function testAddDonationToBatchNonexistentDonation() public {
+        // Create batch
+        vm.startPrank(admin);
+        productBatch.createBatch(latitude, longitude);
+        vm.expectRevert("Donation does not exist");
+        productBatch.addDonationToBatch(1, 999);
+        vm.stopPrank();
+    }
+
+    function testAddDonationToBatchAlreadyAssigned() public {
+        // Create batch and donation
+        vm.startPrank(admin);
+        productBatch.createBatch(latitude, longitude);
+        vm.stopPrank();
+
+        vm.startPrank(donor);
+        uint256 donationId = productBatch.createDonation(
+            "Test Donation",
+            IDataTypes.DonationType.Food,
+            "image_url"
+        );
+        vm.stopPrank();
+
+        // Add donation to batch
+        vm.startPrank(admin);
+        productBatch.addDonationToBatch(1, donationId);
+        
+        // Try to add same donation again
+        vm.expectRevert("Donation already assigned");
+        productBatch.addDonationToBatch(1, donationId);
+        vm.stopPrank();
+    }
+
+    function testGetAllBatchesInTransitAndDelivery() public {
+        // Create multiple batches and move them to different states
+        vm.startPrank(admin);
+        // First batch - will be in DELIVERY
+        productBatch.createBatch(latitude, longitude);
+        productBatch.closeBatch(1);
+        
+        // Second batch - will be in IN_TRANSIT
+        string memory newLatitude = "36.721357";
+        string memory newLongitude = "-0.800341";
+        productBatch.createBatch(newLatitude, newLongitude);
+        productBatch.closeBatch(2);
+        
+        // Third batch - will remain in OPEN state
+        string memory newLatitude2 = "41.416775";
+        string memory newLongitude2 = "-4.703790";
+        productBatch.createBatch(newLatitude2, newLongitude2);
+        vm.stopPrank();
+
+        // Move first batch to DELIVERY
+        vm.startPrank(transporter);
+        productBatch.claimBatchForTransporter(1);
+        vm.stopPrank();
+        
+        vm.startPrank(admin);
+        productBatch.claimBatchForDelivery(1);
+        vm.stopPrank();
+
+        // Move second batch to IN_TRANSIT
+        vm.startPrank(transporter);
+        productBatch.claimBatchForTransporter(2);
+        vm.stopPrank();
+
+        // Get all batches in transit and delivery
+        vm.startPrank(admin);
+        IDataTypes.Batch[] memory batches = productBatch.getAllBatchesInTransitAndDelivery();
+        vm.stopPrank();
+
+        // Verify results
+        assertEq(batches.length, 2);
+        assertEq(uint(batches[0].status), uint(IDataTypes.BatchStatus.DELIVERY));
+        assertEq(uint(batches[1].status), uint(IDataTypes.BatchStatus.IN_TRANSIT));
+    }
 }
