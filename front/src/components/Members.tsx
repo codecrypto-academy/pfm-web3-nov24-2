@@ -13,11 +13,36 @@ const Members: React.FC = () => {
   const [ newMember, setNewMember ] = useState({
     address: "",
     role: "",
-    active: false,
+    active: false
   });
   const [ members, setMembers ] = useState<MemberData[]>([]);
   const [ showSaveButton, setShowSaveButton ] = useState(false);
+  const [ accounts, setAccounts ] = useState<string[]>([]);
   const { contract } : any = useEthereum();
+
+
+  // Función para conectar con MetaMask y obtener cuentas
+  const connectWallet = async () => {
+    if (typeof window.ethereum !== 'undefined') {
+      try {
+        // Solicitar acceso a las cuentas
+        const accountsList = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        setAccounts(accountsList);
+        if (accountsList.length === 0) {
+          console.error('Error there isn\'t any imported account in Metamask!');
+        }
+      } catch (error) {
+        console.error('Error connecting to MetaMask:', error);
+      }
+    } else {
+      console.error('MetaMask is not installed');
+    }
+  };
+
+  // Llamar a connectWallet cuando el componente se monta
+  useEffect(() => {
+    connectWallet();
+  }, []);
 
   useEffect(() => {
 
@@ -41,19 +66,21 @@ const Members: React.FC = () => {
     const { name, value } = e.target;
     setNewMember((prev) => ({
       ...prev,
-      [name]: name === "active" ? value === "true" : value,
+      [name]: name === "active" ? value === "true" : value
     }));
     setShowSaveButton(true);
   };
 
   const handleSave = async () => {
+    console.info(`Address: ${newMember.address}, Role: ${newMember.role}, Active: ${newMember.active}`);
     if (contract) {
       try {
         await contract.addMember(newMember.address, newMember.role, newMember.active);
-        setNewMember({ address: "", role: "2", active: false });
-        setShowSaveButton(false);
       } catch (error) {
         console.error('Error calling contract method:', error);
+      } finally {
+        setNewMember({ address: "", role: "2", active: false });
+        setShowSaveButton(false);
       }
     }
   };
@@ -87,15 +114,19 @@ const Members: React.FC = () => {
       {/* Formulario para nuevo miembro */}
       <div className="p-4 border-t border-gray-200">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Añadir Nuevo Miembro</h3>
-        <div className="grid grid-cols-3 gap-4">
-          <input
-            type="text"
+        <div className="grid grid-cols-5 gap-4">
+          <select
             name="address"
             value={newMember.address}
             onChange={handleInputChange}
-            placeholder="Address"
             className="border border-gray-300 rounded-md px-3 py-2 w-full whitespace-nowrap text-gray-700"
-          />
+          >
+            {accounts.map((account: string, index: number) => (
+              <option key={index} value={account}>
+                {account}
+              </option>
+            ))}
+          </select>
           <select
             name="role"
             value={newMember.role}
@@ -139,54 +170,56 @@ const Members: React.FC = () => {
         )}
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-          <thead className="bg-gray-200">
-            <tr>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
-                Address
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
-                Role
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
-                Estado
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            { members.map((member: MemberData, index: any) => (
-              <tr key={index} className={!member[2] ? 'bg-gray-100' : ''}>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-700">
-                  {member[0]}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <select
-                    value={member[1]}
-                    onChange={(e: any) => handleRoleChange(member[0], e.target.value as number, member[2])}
-                    className="border border-gray-300 rounded-md px-2 py-1 text-gray-700"
-                  >
-                    <option value="0">Admin</option>
-                    <option value="1">Transportista</option>
-                    <option value="2">Donante</option>
-                  </select>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => handleToggleActive(member[0], member[1], !member[2])}
-                    className={`px-4 py-2 rounded-md shadow-md ${
-                      member[2] 
-                        ? 'bg-red-500 hover:bg-red-600 text-white'
-                        : 'bg-green-500 hover:bg-green-600 text-white'
-                    }`}
-                  >
-                    {member[2] ? 'Desactivar' : 'Activar'}
-                  </button>
-                </td>
+      <div className="p-4 border-t border-gray-200">
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+            <thead className="bg-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
+                  Address
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
+                  Role
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">
+                  Estado
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              { members.map((member: MemberData, index: number) => (
+                <tr key={index} className={!member[2] ? 'bg-gray-100' : ''}>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                    {member[0]}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <select
+                      value={member[1]}
+                      onChange={(e: any) => handleRoleChange(member[0], e.target.value as number, member[2])}
+                      className="border border-gray-300 rounded-md px-2 py-1 text-gray-700"
+                    >
+                      <option value="0">Admin</option>
+                      <option value="1">Transportista</option>
+                      <option value="2">Donante</option>
+                    </select>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button
+                      onClick={() => handleToggleActive(member[0], member[1], !member[2])}
+                      className={`px-4 py-2 rounded-md shadow-md ${
+                        member[2] 
+                          ? 'bg-red-500 hover:bg-red-600 text-white'
+                          : 'bg-green-500 hover:bg-green-600 text-white'
+                      }`}
+                    >
+                      {member[2] ? 'Desactivar' : 'Activar'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

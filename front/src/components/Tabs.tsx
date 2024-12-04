@@ -8,16 +8,16 @@ import Transport from './Transport';
 import Delivery from './BatchDelivery';
 
 const Tabs: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>('Donaciones');
+  const [activeTab, setActiveTab] = useState<string>('Miembros');
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'Donaciones':
-        return <Donor />;
       case 'Miembros':
         return <Members />;
       case 'Gestión de Lotes':
         return <Batches />;
+      case 'Donaciones':
+        return <Donor />;
       case 'Transporte':
         return <Transport />;
       case 'Entrega en destino':
@@ -30,7 +30,7 @@ const Tabs: React.FC = () => {
   return (
     <div className="p-4">
       <div className="flex space-x-4 border-b">
-        {['Donaciones', 'Miembros', 'Gestión de Lotes', 'Transporte', 'Entrega en destino'].map(tab => (
+        {['Miembros', 'Gestión de Lotes', 'Donaciones', 'Transporte', 'Entrega en destino'].map(tab => (
           <button
             key={tab}
             className={`py-2 px-4 rounded-t-lg transition-colors duration-300 ${
